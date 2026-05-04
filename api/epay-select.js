@@ -97,7 +97,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
  
-   requestUrl = req.headers.origin.split("//")[1];
+   request_URL = req.headers.origin.split("//")[1];
     console.log("re_header--", request_URL);
   try {
     /* ================== INPUT ================== */

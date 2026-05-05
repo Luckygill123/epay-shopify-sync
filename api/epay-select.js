@@ -88,6 +88,7 @@ async function findProductByEpayId({ shop, token, version, epay_id }) {
 ============================================================ */
 
 export default async function handler(req, res) {
+   console.log("request00", req);
   // ================== CORS ==================
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");

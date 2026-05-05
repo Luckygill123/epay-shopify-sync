@@ -1,165 +1,89 @@
 import crypto from "crypto";
 import { XMLParser } from "fast-xml-parser";
 
-  function getTimeStamp() {
+/* ---------------------------------------------
+   REQUIRED for Shopify webhook verification
+--------------------------------------------- */
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-  var date = new Date().getDate(); 
-  console.log(date);
-  date = (date < 10 ? '0' : '') + date;
-  var month = new Date().getMonth() + 1; 
-  month = (month < 10 ? '0' : '') + month;
-  var year = new Date().getFullYear();   
-  var hours = new Date().getHours(); 
-  hours = (hours < 10 ? '0' : '') + hours;
-  var min = new Date().getMinutes(); 
-  min = (min < 10 ? '0' : '') + min;
-  var sec = new Date().getSeconds(); 
-  sec = (sec < 10 ? '0' : '') + sec;
-
-  console.log(sec);
-  var timeStamp = year + month + date
-    + hours + min + sec;
-
-
-  return timeStamp;
-
-}
-
-
-function getDateTimeFormat (){
-  let date =  new Date().toISOString().slice(0, 10);
-  let Localtime  = new Date().toLocaleTimeString().replace(' AM', '').replace(' PM', '');
-  console.log("Localtime--", Localtime)
-  let time;
-  var hours = new Date().getHours(); 
-  hours = (hours < 10 ? '0' : '') + hours;
-  var min = new Date().getMinutes(); 
-  min = (min < 10 ? '0' : '') + min;
-  var sec = new Date().getSeconds(); 
-  sec = (sec < 10 ? '0' : '') + sec;
-  time = `${hours}:${min}:${sec}`;
-
-  console.log('timedata',  date+" "+time);
-  return date+" "+time
-}
-
-
-function formatEpayAmount(amount) {
-  const value = Number(amount);
-
-  if (Number.isNaN(value) || value <= 0) {
-    throw new Error(`Invalid epay amount: ${amount}`);
-  }
-
-  // If Shopify gives 100.00 → convert to 10000
-  return Math.round(value * 100).toString();
-}
-
-/* -------------------------------------------------
-   1️⃣ Read RAW body (Shopify webhook requirement)
--------------------------------------------------- */
+/* ---------------------------------------------
+   Utils
+--------------------------------------------- */
 function getRawBody(req) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
   });
 }
 
-/* -------------------------------------------------
-   2️⃣ Verify Shopify HMAC
--------------------------------------------------- */
 function verifyWebhook(rawBody, hmacHeader) {
+  if (!hmacHeader) return false;
+
   const digest = crypto
-    .createHmac("sha256", process.env.SHOPIFY_WEBHOOK_SECRET)
+    .createHmac("sha256", process.env.SHOPIFY_API_SECRET)
     .update(rawBody)
     .digest("base64");
 
-  return digest === hmacHeader;
+  return crypto.timingSafeEqual(
+    Buffer.from(digest),
+    Buffer.from(hmacHeader)
+  );
 }
 
-/* -------------------------------------------------
-   3️⃣ Call ePay SALE API
--------------------------------------------------- */
-async function callEpaySale(orderId, amount, ean) {
+function formatEpayAmount(amount) {
+  const value = Number(amount);
+  if (!value || value <= 0) throw new Error("Invalid amount");
+  return Math.round(value * 100).toString();
+}
 
-  const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
-<REQUEST TYPE="SALE" STORERECEIPT="0">
+/* ---------------------------------------------
+   ePay API Call (with timeout)
+--------------------------------------------- */
+async function callEpaySale(orderId, amount, ean) {
+  const xmlPayload = `<?xml version="1.0"?>
+<REQUEST TYPE="SALE">
 <AMOUNT>${formatEpayAmount(amount)}</AMOUNT>
-<CARD>
-<EAN>${ean}</EAN>
-</CARD>
-<COMMENT>CASHIERID=manager</COMMENT>
-<EXTRADATA>
-<DATA name="CONTRACT">Sale_93889311_${getTimeStamp()}</DATA>
-</EXTRADATA>
-<LOCALDATETIME>${getDateTimeFormat()}</LOCALDATETIME>
-<PASSWORD>028eb6be0b280853</PASSWORD>
-<RECEIPT>
-<CHARSPERLINE>38</CHARSPERLINE>
-<LANGUAGE>eng</LANGUAGE>
-<LINES>40</LINES>
-</RECEIPT>
+<CARD><EAN>${ean}</EAN></CARD>
 <TERMINALID>93889311</TERMINALID>
-<TXID>Sale_93889311_${getTimeStamp()}</TXID>
-<USERNAME>UPTest_93889311</USERNAME>
+<TXID>${orderId}_${Date.now()}</TXID>
 </REQUEST>`;
 
-console.log("xmlPayload--", xmlPayload)
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-const response = await fetch(
-  "https://precision.epayworldwide.com/up-interface/",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/xml",
-      "Accept": "application/xml",
-      "Connection": "close"
-    },
-    body: xmlPayload.trim()
-  }
-);
-
-const text = await response.text();
-console.log("🟢 ePay Raw XML:", text);
-
-
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-  });
-
-  const json = parser.parse(text);
-
-  console.log("🟢 ePay Parsed JSON:", json);
-
-  return json;
-}
-/* -------------------------------------------------
-   3️⃣ Save ePay result to ORDER metafield
--------------------------------------------------- */
-async function saveEpayToOrder(orderId, epayData) {
-  const mutation = `
-    mutation SetEpayMetafield($metafields: [MetafieldsSetInput!]!) {
-      metafieldsSet(metafields: $metafields) {
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    metafields: [
+  try {
+    const res = await fetch(
+      "https://precision.epayworldwide.com/up-interface/",
       {
-        ownerId: `gid://shopify/Order/${orderId}`,
-        namespace: "epay",
-        key: "result",
-        type: "json",
-        value: JSON.stringify(epayData),
-      },
-    ],
-  };
+        method: "POST",
+        headers: { "Content-Type": "application/xml" },
+        body: xmlPayload,
+        signal: controller.signal,
+      }
+    );
+
+    const text = await res.text();
+    const parser = new XMLParser({ ignoreAttributes: false });
+    return parser.parse(text);
+
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/* ---------------------------------------------
+   Save metafield
+--------------------------------------------- */
+async function saveEpayToOrder(orderId, epayData) {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN || !process.env.SHOPIFY_SHOP) {
+    throw new Error("Missing Shopify ENV");
+  }
 
   const response = await fetch(
     `https://${process.env.SHOPIFY_SHOP}/admin/api/2026-01/graphql.json`,
@@ -169,65 +93,101 @@ async function saveEpayToOrder(orderId, epayData) {
         "Content-Type": "application/json",
         "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_TOKEN,
       },
-      body: JSON.stringify({ query: mutation, variables }),
+      body: JSON.stringify({
+        query: `
+          mutation ($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              userErrors { message }
+            }
+          }
+        `,
+        variables: {
+          metafields: [
+            {
+              ownerId: `gid://shopify/Order/${orderId}`,
+              namespace: "epay",
+              key: "result",
+              type: "json",
+              value: JSON.stringify(epayData),
+            },
+          ],
+        },
+      }),
     }
   );
 
   const json = await response.json();
 
-    console.log("✅ ePay metafield saved on order", json);
-
   if (json.data?.metafieldsSet?.userErrors?.length) {
-    console.error("❌ Metafield errors:", json.data.metafieldsSet.userErrors);
-    throw new Error("Failed to save metafield");
+    throw new Error(JSON.stringify(json.data.metafieldsSet.userErrors));
   }
 
-
+  console.log("✅ Metafield saved");
 }
 
-/* -------------------------------------------------
-   4️⃣ Webhook handler
--------------------------------------------------- */
+/* ---------------------------------------------
+   MAIN HANDLER
+--------------------------------------------- */
 export default async function handler(req, res) {
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const rawBody = await getRawBody(req);
-  const hmac = req.headers["x-shopify-hmac-sha256"];
-
-  if (!verifyWebhook(rawBody, hmac)) {
-    return res.status(401).send("Invalid webhook");
-  }
-
-  const order = JSON.parse(rawBody.toString());
-  const orderId = order.id;
-
-  const amount = order?.line_items[0]?.price;
-  const ean = order?.line_items[0]?.sku;
-
-  console.log("🟢 ORDER DATA:", order);
-  console.log("🟢 ORDER PAID:", orderId);
-  console.log("🟢 amount Data:", amount, ean);
-
-
-  /* -------------------------------------------------
-     5️⃣ REAL ePay response (example)
-  -------------------------------------------------- */
-
+  let rawBody;
 
   try {
-    // 1️⃣ Call ePay
-    const epayResponse = await callEpaySale(orderId, amount, ean);
-    console.log("epayResponse--", epayResponse)
+    rawBody = await getRawBody(req);
+  } catch (err) {
+    console.error("❌ Body read error:", err);
+    return res.status(400).send("Invalid body");
+  }
 
-    // 2️⃣ Save to Shopify
+  const hmac = req.headers["x-shopify-hmac-sha256"];
+
+  /* 🔐 Verify webhook */
+  if (!verifyWebhook(rawBody, hmac)) {
+    console.error("❌ Invalid webhook signature");
+    return res.status(401).send("Unauthorized");
+  }
+
+  let order;
+  try {
+    order = JSON.parse(rawBody.toString());
+  } catch (err) {
+    console.error("❌ JSON parse error:", err);
+    return res.status(400).send("Bad JSON");
+  }
+
+  const orderId = order?.id;
+  const item = order?.line_items?.[0];
+
+  if (!orderId || !item?.price || !item?.sku) {
+    console.warn("⚠️ Missing required order data");
+    return res.status(200).send("Skipped");
+  }
+
+  const amount = item.price;
+  const ean = item.sku;
+
+  console.log("🟢 Processing order:", orderId);
+
+  try {
+    /* 1️⃣ Call ePay */
+    const epayResponse = await callEpaySale(orderId, amount, ean);
+
+    /* 2️⃣ Save to Shopify */
     await saveEpayToOrder(orderId, epayResponse);
 
-  } catch (error) {
-    console.error("❌ ePay error:", error);
-  }
-  // await saveEpayToOrder(orderId, epayResponse);
+    return res.status(200).send("OK");
 
-  res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Processing failed:", err);
+
+    // IMPORTANT: still return 200 to stop Shopify retry storm
+    return res.status(200).send("Handled with error");
+  }
 }

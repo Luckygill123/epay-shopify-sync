@@ -90,12 +90,31 @@ async function findProductByEpayId({ shop, token, version, epay_id }) {
 export default async function handler(req, res) {
    console.log("request00", req);
   // ================== CORS ==================
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).end();
+res.setHeader(
+  "Access-Control-Allow-Origin",
+  "https://epay-store-2-2.myshopify.com"
+);
+
+res.setHeader(
+  "Access-Control-Allow-Methods",
+  "GET, POST, OPTIONS"
+);
+
+res.setHeader(
+  "Access-Control-Allow-Headers",
+  "Content-Type, Authorization"
+);
+
+if (req.method === "OPTIONS") {
+  return res.status(200).end();
+}
+
+if (req.method !== "POST") {
+  return res.status(405).json({
+    error: "Method not allowed",
+  });
+}
 
   // console.log("re_header--00", req.headers.origin);
   //  request_URL = req.headers.origin.split("//")[1];

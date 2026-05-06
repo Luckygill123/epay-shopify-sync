@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
 res.setHeader(
   "Access-Control-Allow-Origin",
-  "https://epay-store-2-2.myshopify.com"
+  "*"
 );
 
 res.setHeader(

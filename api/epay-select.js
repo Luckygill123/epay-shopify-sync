@@ -116,7 +116,7 @@ if (req.method !== "POST") {
   });
 }
 
-  // console.log("re_header--00", req.headers.origin);
+  console.log("re_header--00", req.headers.origin);
   //  request_URL = req.headers.origin.split("//")[1];
    
   try {

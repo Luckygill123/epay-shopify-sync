@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  let request_URL;
+  request_URL = req.headers.origin.split("https://")[1];
+
   try {
         // ✅ Allow your shop domain
   res.setHeader(
@@ -38,7 +41,9 @@ export default async function handler(req, res) {
     `;
 
     const response = await fetch(
-      `https://${process.env.SHOPIFY_SHOP}/admin/api/2026-01/graphql.json`,
+      // `https://${process.env.SHOPIFY_SHOP}/admin/api/2026-01/graphql.json`,
+      `https://${request_URL}/admin/api/2026-01/graphql.json`,
+      
       {
         method: "POST",
         headers: {

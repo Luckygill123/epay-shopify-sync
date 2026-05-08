@@ -1,9 +1,6 @@
 import crypto from "crypto";
 import { XMLParser } from "fast-xml-parser";
 
-  let request_URL;
-
-
   function getTimeStamp() {
 
   var date = new Date().getDate(); 
@@ -167,9 +164,7 @@ async function saveEpayToOrder(orderId, epayData) {
   };
 
   const response = await fetch(
-    // `https://${process.env.SHOPIFY_SHOP}/admin/api/2026-01/graphql.json`,
-    `https://${request_URL}/admin/api/2026-01/graphql.json`,
-    
+    `https://${process.env.SHOPIFY_SHOP}/admin/api/2026-01/graphql.json`,
     {
       method: "POST",
       headers: {
@@ -199,8 +194,6 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
-
-    request_URL = req.headers.origin.split("https://")[1];
 
   const rawBody = await getRawBody(req);
   const hmac = req.headers["x-shopify-hmac-sha256"];

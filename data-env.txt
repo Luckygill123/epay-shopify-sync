@@ -32,7 +32,7 @@ APP_URL=https://epay-shopify-vercel.vercel.app
 
 
 
-SHOPIFY_SHOP=epay-store-2-2.myshopify.com
+SHOPIFY_SHOP=epay-teststore-1.myshopify.com
 SHOPIFY_API_VERSION=2024-10
 SHOPIFY_ADMIN_TOKEN=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
 SHOPIFY_STOREFRONT_TOKEN=19b7a5d562e988799a678f7a557bcdff

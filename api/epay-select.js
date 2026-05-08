@@ -116,8 +116,8 @@ if (req.method !== "POST") {
   });
 }
 
-  console.log("re_header--00", req.headers.origin);
-   request_URL = req.headers.origin.split("https://")[1];
+  // console.log("re_header--00", req.headers.origin);
+  //  request_URL = req.headers.origin.split("https://")[1];
    
   try {
     /* ================== INPUT ================== */
@@ -151,8 +151,8 @@ if (req.method !== "POST") {
        1️⃣ CHECK EXISTING PRODUCT (NO DUPLICATES)
     ============================================================ */
     const existing = await findProductByEpayId({
-      // shop: SHOPIFY_SHOP,
-      shop:request_URL,
+      shop: SHOPIFY_SHOP,
+      // shop:request_URL,
       token: SHOPIFY_ADMIN_TOKEN,
       version: SHOPIFY_API_VERSION,
       epay_id,
@@ -179,8 +179,8 @@ if (req.method !== "POST") {
  console.log("re_header--1", request_URL);
      console.log("product create call"); 
     const createRes = await fetch(
-      // `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
-    `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
+      `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
+    // `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
       
       {
         method: "POST",
@@ -249,8 +249,8 @@ console.log("🟣 base64Image length:", base64Image?.length);
 if (image && provider) {
   try{
   await fetch(
-    // `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json`,
-    `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json`,
+    `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json`,
+    // `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json`,
     
     {
       method: "POST",
@@ -281,8 +281,8 @@ if (image && provider) {
        4️⃣ PUBLISH TO ONLINE STORE
     ============================================================ */
     const pubsRes = await fetch(
-      // `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/publications.json`,
- `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/publications.json`,
+      `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/publications.json`,
+//  `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/publications.json`,
       
       {
         headers: {
@@ -297,8 +297,8 @@ if (image && provider) {
     );
 
     await fetch(
-      // `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/publications/${onlineStore.id}/publishable_resources.json`,
-      `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/publications/${onlineStore.id}/publishable_resources.json`,
+      `https://${SHOPIFY_SHOP}/admin/api/${SHOPIFY_API_VERSION}/publications/${onlineStore.id}/publishable_resources.json`,
+      // `https://${request_URL}/admin/api/${SHOPIFY_API_VERSION}/publications/${onlineStore.id}/publishable_resources.json`,
       
       {
         method: "POST",

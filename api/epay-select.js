@@ -89,11 +89,14 @@ async function findProductByEpayId({ shop, token, version, epay_id }) {
 
 export default async function handler(req, res) {
    console.log("request00", req);
+  //    console.log("re_header--00", req.headers.origin);
+  //  request_URL = req.headers.origin.split("https://")[1];
   // ================== CORS ==================
 
 res.setHeader(
   "Access-Control-Allow-Origin",
-  "*"
+  // "*"
+  `req.headers.origin`
 );
 
 res.setHeader(
@@ -116,8 +119,7 @@ if (req.method !== "POST") {
   });
 }
 
-  // console.log("re_header--00", req.headers.origin);
-  //  request_URL = req.headers.origin.split("https://")[1];
+
    
   try {
     /* ================== INPUT ================== */

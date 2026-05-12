@@ -45,5 +45,28 @@ EPAY_PASSWORD=028eb6be0b280853
 EPAY_TERMINAL_ID=93889617
 EPAY_URL=https://epay-api-url
 
+****************************************************************************************************
+
+for client store epay-test-1.myshopify.com
+
+SHOPIFY_API_KEY=175019aa5769d039e6de289cefb75b51
+SHOPIFY_API_SECRET=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
+SHOPIFY_SCOPES=write_products
+APP_URL=https://epay-shopify-vercel.vercel.app
+
+
+
+SHOPIFY_SHOP=epay-test-1.myshopify.com
+SHOPIFY_API_VERSION=2024-10
+SHOPIFY_ADMIN_TOKEN=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
+SHOPIFY_STOREFRONT_TOKEN=19b7a5d562e988799a678f7a557bcdff
+PORT=3000
+
+
+SHOPIFY_WEBHOOK_SECRET=a040ff4ba913680f397488e2f5e7fb34f5a9b09873249bfe1740341e4bf8685d
+EPAY_USERNAME=UPTest_93889311
+EPAY_PASSWORD=028eb6be0b280853
+EPAY_TERMINAL_ID=93889617
+EPAY_URL=https://epay-api-url
 
 
